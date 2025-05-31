@@ -56,9 +56,9 @@ long long int MEMORYSIZE;
 //---------------------------------------
 //(1) use built-in C functions
 // change the following lines to test the real malloc and free
-const string strategy = "malloc"; //enable this to test the system MALLOC & FREE
-#define MALLOC malloc //enable this to test the system MALLOC & FREE
-#define FREE free //enable this to test the system MALLOC & FREE
+// const string strategy = "malloc"; //enable this to test the system MALLOC & FREE
+// #define MALLOC malloc //enable this to test the system MALLOC & FREE
+// #define FREE free //enable this to test the system MALLOC & FREE
 
 //---------------------------------------
 //(2) use user-defined functions
@@ -69,10 +69,10 @@ const string strategy = "malloc"; //enable this to test the system MALLOC & FREE
 //---------------------------------------
 //Enable the following compiler directives to test your implementation of buddy system strategy
 //(3) use Buddy System
-// const string strategy = "Buddy System"; //enable this to test the Buddy System
-// #define USE_BUDDY_SYSTEM  //enable this to test the Buddy System
-// #define MALLOC buddyMalloc //enable this to test the Buddy System
-// #define FREE buddyFree //enable this to test the Buddy System
+const string strategy = "Buddy System"; //enable this to test the Buddy System
+#define USE_BUDDY_SYSTEM  //enable this to test the Buddy System
+#define MALLOC buddyMalloc //enable this to test the Buddy System
+#define FREE buddyFree //enable this to test the Buddy System
 //---------------------------------------
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -188,6 +188,8 @@ auto start = std::chrono::steady_clock::now();
 
 
    //Hint: Initialise the contiguous block to be used by the Buddy System algorithm here.
+   initBuddySys(); //initialise the Buddy System
+   printf("\nBuddy System initialised.\n");
 
 
    }
@@ -198,7 +200,6 @@ auto start = std::chrono::steady_clock::now();
 
 
 
-   
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 cout << "\n<< Simulation start >>\n";
    
