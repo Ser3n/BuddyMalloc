@@ -41,3 +41,14 @@ it's normal for memory usage to vary between runs of the same program. There are
 2) Memory Allocation: The memory usage of a program can vary depending on how memory is allocated and managed within the program. Dynamic memory allocation, such as calls to malloc() or new, may result in different memory usage patterns each time the program runs.
 3) External Factors: External factors, such as background processes, system services, and device drivers, can also impact memory usage. These factors may change between runs of the program, leading to differences in memory usage.
 4) Memory Fragmentation: Memory fragmentation can occur over time as memory is allocated and deallocated within the program. This can result in variations in memory usage between runs, especially if the program relies heavily on dynamic memory allocation.
+
+        << malloc PERFORMANCE REPORT >>
+========================================================
+
+Final Memory = 2.70705e+07 bytes, or 26436 KiloBytes, or 25.8164 MegaBytes
+
+---<< RESULTS >>---------------------------------------------
+        Used Memory = 2.60669e+07 bytes, or 25456 KiloBytes, or 24.8594 MegaBytes
+
+        Time elapsed: 71.283 seconds
+        Time elapsed: 71283037 microseconds

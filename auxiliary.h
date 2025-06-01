@@ -66,7 +66,7 @@ using namespace std;
 // RUN WHICH TEST? RUN_SIMPLE_TEST or RUN_COMPLETE_TEST ()
 //----------------------------------------
 // (1) Complete test
-  //#define RUN_COMPLETE_TEST //default
+  #define RUN_COMPLETE_TEST //default
 
    //------------------------
    //pick one
@@ -78,7 +78,7 @@ using namespace std;
      #define USE_SIMULATION_2 //default
 //---------------------------------------
 // (2) Simple Test
-     #define RUN_SIMPLE_TEST
+    //  #define RUN_SIMPLE_TEST
 //---------------------------------------
 
 /////////////////////////////////////////////////////////////////

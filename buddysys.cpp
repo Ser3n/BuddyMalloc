@@ -46,7 +46,7 @@
 
 #include "buddysys.h"
 
-bool DEBUG = true; // Set to true to enable debug mode
+bool DEBUG = false; // Set to true to enable debug mode
 
 /////////////////////////////////////////////////////////////////////////////////
 // Globals
@@ -143,7 +143,10 @@ int smallestK(int memory_request_max)
     }
     if (size == check2 || size == check) // Check if the size matches the power of two
     {
-        cout << "Size checks out!" << endl;
+        if(DEBUG)
+        {
+            cout << "Size checks out!" << endl;
+        }
     }
     else
     {
@@ -154,6 +157,27 @@ int smallestK(int memory_request_max)
     return k; // Return the smallest bin that can accommodate the request
 }
 
+void insertToFreeList(Node *block, int k)
+{
+    if (DEBUG)
+    {
+        cout << "Inserting block into FreeList[" << k << "]" << endl;
+        printNode(block, k); // Print the details of the block to be inserted
+    }
+
+    block->next = FreeList[k]; // Insert the block at the head of the FreeList[k]
+    block->previous = NULL;    // Set the previous pointer to NULL as it will be the new head
+    if (FreeList[k] != NULL)   // Check if there is a block in the FreeList[k]
+    {
+        FreeList[k]->previous = block; // Set the previous pointer of the head of the list to point to the new block
+    }
+    FreeList[k] = block; // Make the new block the head of the FreeList[k]
+
+    if (DEBUG)
+    {
+        cout << "Block inserted into FreeList[" << k << "]" << endl;
+    }
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Buddy functions
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -352,6 +376,7 @@ int buddyFree(void *p)
     //  Debugging guide, page 34
 
     Node *blockToBeFreed = (Node *)((uintptr_t)p - (uintptr_t)sizeof(Node)); // Get the Node pointer from the user data pointer
+
     if (DEBUG)
     {
         cout << "Address of the block to be freed: " << blockToBeFreed << endl;
@@ -371,6 +396,7 @@ int buddyFree(void *p)
     // STEP 4: DETERMINE BLOCK ROW
     // Calculate which FreeList this block belongs to based on its size
     int block_size = blockToBeFreed->size + sizeof(Node); // Total size including the Node header
+
     int k = 0;
     while (powerOfTwo(k + MIN_ROW_SIZE) < block_size)
     {
@@ -378,13 +404,18 @@ int buddyFree(void *p)
     }
     if (DEBUG)
     {
-        cout << "Block size: " << block_size << " bytes, belongs to FreeList[" << k << "]" << endl;
-        cout << "Block size without Node header: " << blockToBeFreed->size << " bytes" << endl;
-        cout << blockToBeFreed->previous << " is the previous block in the FreeList." << endl;
-        cout << blockToBeFreed->next << " is the next block in the FreeList." << endl;
+        cout << "BEFORE freeing" << endl;
+        printNode(blockToBeFreed, k); // Print the details of the block to be freed
     }
     // STEP 5: mark block as free
-    blockToBeFreed->alloc = 0; // Mark the block as free
+    blockToBeFreed->alloc = 0;                                          // Mark the block as free
+    blockToBeFreed->size = powerOfTwo(k + MIN_ROW_SIZE) - sizeof(Node); // Set the size of the block to the size of the block minus the Node header
+
+    if (DEBUG)
+    {
+        cout << "AFTER freeing" << endl;
+        printNode(blockToBeFreed, k); // Print the details of the block to be freed
+    }
 
     if (DEBUG)
     {
@@ -394,11 +425,173 @@ int buddyFree(void *p)
     // STEP 6: COALESCING LOOP
     // "If a block of memory is freed, the system should check whether the buddy
     //  is also free and then combine them together into a single free block."
-    // (Reference: Lecture slide 9.33)
+    // Reference: Week 7 MMBS v2 9.37
 
-    // "buddy = start + (address - start) ^ size"
-    // (Reference: Lecture slide 9.37)
+    Node *blockToCoalesce = blockToBeFreed; // This is the block that we will coalesce with its buddy if possible
+    int current_k = k;
 
+    while (current_k < (Max_Rows - 1)) // Loop until we reach the maximum possible rows
+    {
+        if (DEBUG)
+        {
+            cout << "Checking for buddy block in FreeList[" << k << "]" << endl;
+        }
+
+        // Finding the buddy block
+        // The buddy block is the block that is at the same level as the current block
+        // and has the same size, but is located at a different address.
+        // The buddy address can be calculated using the formula:
+        // buddy = start + (address - start) ^ size where ^ is the XOR operator and start is the start address of the whole memory available.
+
+        Node *buddyAddress = NULL; // Initialize buddyAddress to NULL
+
+        // Finding the buddy block
+        // if the block has a start address of address and size of size then the address of the buddy block can be calculated from
+        // buddy = start + (address - start) ^ size where ^ is the XOR operator and start is the start address of the whole memory available.
+        int sizeOfBlock = powerOfTwo(current_k + MIN_ROW_SIZE);                                                                  // Size of the block in bytes
+        Node *startAddress = wholememory;                                                                                        // Start address of the whole memory
+        buddyAddress = (Node *)((uintptr_t)startAddress + ((uintptr_t)blockToCoalesce - (uintptr_t)startAddress) ^ sizeOfBlock); // Calculate the buddy address
+        int expectedSize = powerOfTwo(current_k + MIN_ROW_SIZE) - sizeof(Node);                                                  // Expected size of the data
+        if (DEBUG)
+        {
+            cout << "Calculating buddy address..." << endl;
+            cout << "Buddy address calculated: " << buddyAddress << endl;
+            cout << "Size of block: " << sizeOfBlock << " bytes" << endl;
+            cout << "Start address of whole memory: " << startAddress << endl;
+            cout << "Block to coalesce address: " << blockToCoalesce << endl;
+        }
+        if (buddyAddress == NULL)
+        {
+            if (DEBUG)
+            {
+                cout << "Error: Buddy address is NULL." << endl;
+            }
+            break; // Buddy address is NULL, cannot coalesce
+        }
+
+        if (buddyAddress < wholememory)
+        {
+            if (DEBUG)
+            {
+                cout << "Error: Buddy address is less than the start address of the whole memory." << endl;
+            }
+            break; // Buddy address is invalid, cannot coalesce
+        }
+
+        if (buddyAddress >= (Node *)((uintptr_t)wholememory + MEMORYSIZE))
+        {
+            if (DEBUG)
+            {
+                cout << "Error: Buddy address is greater than the end address of the whole memory." << endl;
+            }
+            break; // Buddy address is invalid, cannot coalesce
+        }
+
+        if (expectedSize != buddyAddress->size) // Check if they are the same size
+        {
+            if (DEBUG)
+            {
+                cout << "Error: Buddy address size does not match the size of the block." << endl;
+                cout << "Buddy address size: " << buddyAddress->size + sizeof(Node) << " bytes" << endl;
+                cout << "Size of Block: " << expectedSize << " bytes" << endl;
+            }
+            break; // Buddy address size does not match the size of the block, cannot coalesce
+        }
+        if (buddyAddress->alloc != 0)
+        {
+            if (DEBUG)
+            {
+                cout << "Error: Buddy address is allocated." << endl;
+                break;
+            }
+        }
+        if (buddyAddress->previous == NULL)
+        { // Remove from head of the FreeList
+            FreeList[current_k] = buddyAddress->next;
+            if (FreeList[current_k] != NULL)
+            {
+                FreeList[current_k]->previous = NULL;
+            }
+
+            if (DEBUG)
+            {
+                cout << "Buddy address is the head of the FreeList[" << current_k << "], removing it." << endl;
+            }
+        }
+        else
+        {
+            if (DEBUG)
+            {
+                cout << "Remove from middle/tail" << endl;
+            }
+
+            if (buddyAddress->previous != NULL)
+            {
+                Node *previousNode = buddyAddress->previous; // Get the previous node
+                Node *nextNode = buddyAddress->next;         // Get the next node
+
+                // To remove from the list, we need to link the nodes wither side of the removed node!
+                if (previousNode != NULL)
+                {
+                    previousNode->next = nextNode; // Link the previous node to the next node
+                }
+
+                if (nextNode != NULL)
+                {
+                    nextNode->previous = previousNode; // Link the next node to the previous node
+                }
+
+                // Clean up by setting the removed buddy's pointers to NULL
+                buddyAddress->next = NULL;
+                buddyAddress->previous = NULL;
+            }
+        }
+
+        // Colescing logic
+
+        // Determine the blocks address
+        if (blockToCoalesce > buddyAddress)
+        {
+            blockToCoalesce = buddyAddress; // Swap to lower address
+        }
+        // If we reach here, it means we have a valid buddy block
+        if (DEBUG)
+        {
+            cout << "==================Buddy Coalesce NODE INFO====================\n";
+            cout << "Looking good, buddy address is valid." << endl;
+            cout << "Buddy address: " << buddyAddress << endl;
+            printNode(buddyAddress, current_k); // Print the details of the buddy block
+            cout << "Block to coalesce address: " << blockToCoalesce << endl;
+            printNode(blockToCoalesce, current_k); // Print the details of the block to coalesce
+            cout << "==================END Buddy Coalesce NODE INFO================\n";
+        }
+
+        // Now we can coalesce the blocks
+        if (DEBUG)
+        {
+            cout << "Coalescing blocks at addresses: " << blockToCoalesce << " and " << buddyAddress << endl;
+        }
+
+        current_k++;                                                       // Move to the next size class
+        int newSize = powerOfTwo(current_k + MIN_ROW_SIZE) - sizeof(Node); // Calculate the new size of the coalesced block
+        if (DEBUG)
+        {
+            cout << "New size of the coalesced block: " << newSize << " bytes" << endl;
+        }
+        // Set the size of the coalesced block
+        blockToCoalesce->size = newSize;  // Add the size of the buddy block and the Node header or we could use the expectedSize variable
+        blockToCoalesce->alloc = 0;       // Mark the block as free
+        blockToCoalesce->next = NULL;     // Set next to NULL as it is not in the FreeList anymore
+        blockToCoalesce->previous = NULL; // Set previous to NULL as it is not in the FreeList anymore
+    }
+    // Add the coalesced block to the FreeList
+    insertToFreeList(blockToCoalesce, current_k); // Insert the coalesced block into the FreeList
+
+    if (DEBUG)
+    {
+        cout << "Coalesced block inserted into FreeList[" << current_k << "]" << endl;
+        printNode(blockToCoalesce, current_k); // Print the details of the coalesced block
+    }
     return 1; // dummy statement only
 }
 
